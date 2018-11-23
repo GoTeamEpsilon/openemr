@@ -144,15 +144,15 @@ class EncounterService
                        ON opc.pc_catid = fe.pc_catid
                        LEFT JOIN facility as fa ON fa.id = fe.billing_facility";
 
-        if ($search['pid'] || $search['privider_id']) {
+        if ($search['pid'] || $search['provider_id']) {
             $sql .= " WHERE ";
 
             $whereClauses = array();
             if ($search['pid']) {
                 array_push($whereClauses, "pid='" . add_escape_custom($search['pid']) . "'");
             }
-            if ($search['privider_id']) {
-                array_push($whereClauses, "provider_id='" . add_escape_custom($search['privider_id']) . "'");
+            if ($search['provider_id']) {
+                array_push($whereClauses, "provider_id='" . add_escape_custom($search['provider_id']) . "'");
             }
 
             $sql .= implode(" AND ", $whereClauses);
