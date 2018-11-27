@@ -6,7 +6,6 @@ _(Project is in-flight - do not use in production)._
 
 This project aims to provide an easy-to-use JSON-based REST API for OpenEMR's most common functions. All code will be done in classes and separate from the view to help with codebase modernization efforts.
 
-
 ### Team
 
 - [@juggernautsei](https://github.com/juggernautsei)
@@ -14,11 +13,17 @@ This project aims to provide an easy-to-use JSON-based REST API for OpenEMR's mo
 - [@kofiav](https://github.com/kofiav)
 - [@sjpadgett](https://github.com/sjpadgett)
 
+### Prerequsite
+Enable this API service in OpenEMR menu: Administration->Globals Connectors tab.
+
 ### Endpoints
+Note: FHIR endpoints follow normal FHIR REST endpoints. Use `https://domain/apis/fhir as base URL.`
+
+_Example:_ `https://domain/apis/fhir/Patient` returns a Patients bundle resource and etc..
 
 #### POST /api/auth
 
-Obtain an API token with your login (returns an API token):
+Obtain an API token with your login (returns an API token). For FHIR replace Uri component 'api' with 'fhir':
 
 ```
 curl -X POST 'https://localhost:8300/apis/api/auth' \
