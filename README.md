@@ -21,18 +21,27 @@ This project aims to provide an easy-to-use JSON-based REST API for OpenEMR's mo
 Obtain an API token with your login (returns an API token):
 
 ```
-curl -X POST 'http://localhost:8300/apis/api/auth' \
+curl -X POST 'https://localhost:8300/apis/api/auth' \
 -d '{
+    "grant_type":"password",
     "username": "ServiceUser",
-    "password": "password"
+    "password": "password",
+    "client_id":"site id"
 }'
 ```
-
+Response:
+```
+{
+"token_type":"Bearer",
+"access_token":"d2870cb522230dbb8946b2f47d2c7e6664656661756c74",
+"expires_in":"3600"
+}
+```
 Each call must include the token:
 
 ```
 curl -X GET 'http://localhost:8300/apis/api/patient/1/medical_problem' \
-  -H 'x-api-token: b0583518bce37774f5ea627f7190d228'
+  -H 'Authorization: Bearer d2870cb522230dbb8946b2f47d2c7e6664656661756c74'
 ```
 
 #### POST /api/facility

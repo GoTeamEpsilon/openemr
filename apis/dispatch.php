@@ -2,12 +2,24 @@
 /**
  * Rest Dispatch
  *
- * @package   OpenEMR
- * @link      http://www.open-emr.org
- * @author    Matthew Vita <matthewvita48@gmail.com>
- * @author    Jerry Padgett <sjpadgett@gmail.com>
- * @copyright Copyright (c) 2018 Jerry Padgett <sjpadgett@gmail.com>
- * @license   https://www.gnu.org/licenses/agpl-3.0.en.html GNU Affero General Public License 3
+ * Copyright (C) 2018 Matthew Vita <matthewvita48@gmail.com>
+ * Copyright (C) 2018 Jerry Padgett <sjpadgett@gmail.com>
+ *
+ * LICENSE: This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
+ *
+ * @package OpenEMR
+ * @author  Matthew Vita <matthewvita48@gmail.com>
+ * @author  Jerry Padgett <sjpadgett@gmail.com>
+ * @link    http://www.open-emr.org
  */
 
 include_once("./../_rest_config.php");
@@ -33,22 +45,21 @@ if (!empty($_REQUEST['_REWRITE_COMMAND'])) {
 
 // Maintain site id for multi site compatibility.
 // token is a 32 character hash followed by hex encoded site id.
-if ($resource === "/api/auth") {
+if ($resource === "/api/auth" || $resource === "/fhir/auth") {
     // Get a site id from initial log in authentication.
     $data = (array)(json_decode(file_get_contents("php://input")));
-    $site = empty($data['site']) ? "default" : $data['site'];
+    $site = empty($data['client_id']) ? "default" : $data['client_id'];
     $_GET['site'] = $site;
 } else {
-    if (strlen($_SERVER["HTTP_X_API_TOKEN"]) > 32) {
-        $token = str_split($_SERVER["HTTP_X_API_TOKEN"], 32);
-        $_SERVER["HTTP_X_API_TOKEN"] = $token[0]; // reset hash to further the adventure.
+    $token = get_bearer_token();
+    if (strlen($token) > 32) {
+        $token = str_split($token, 32);
+        $_SERVER["HTTP_X_API_TOKEN"] = $token[0]; // set hash to further the adventure.
         $_GET['site'] = hex2bin($token[1]); // site id
     } else {
         // token should always return with embedded site id
-        // remove for production and comment in 401
-        $_GET['site'] = "default";
-        //http_response_code(401);
-        //exit;
+        http_response_code(401);
+        exit();
     }
 }
 
@@ -56,12 +67,25 @@ $ignoreAuth = true;
 require_once("./../interface/globals.php");
 require_once("./../library/acl.inc");
 
+if (!$GLOBALS['rest_api']) {
+    http_response_code(501);
+    exit();
+}
+
 use OpenEMR\Common\Http\HttpRestRouteHandler;
 use OpenEMR\RestControllers\AuthRestController;
 
+function get_bearer_token()
+{
+    $parse = preg_split("/[\s,]+/", $_SERVER["HTTP_AUTHORIZATION"]);
+    if (strtoupper(trim($parse[0])) !== 'BEARER') return false;
+
+    return trim($parse[1]);
+}
+
 function authentication_check($resource)
 {
-    if ($resource !== "/api/auth") {
+    if ($resource !== "/api/auth" && $resource !== "/fhir/auth") {
         $token = $_SERVER["HTTP_X_API_TOKEN"];
         $authRestController = new AuthRestController();
         if (!$authRestController->isValidToken($token)) {
@@ -84,9 +108,8 @@ function authorization_check($section, $value)
     }
 }
 
-
 authentication_check($resource);
-
+// @TODO test pass routes by ref
 HttpRestRouteHandler::dispatch($routes, $resource, $_SERVER["REQUEST_METHOD"]);
 // Tear down session for security.
 $gbl->destroySession();
