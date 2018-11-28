@@ -2680,13 +2680,6 @@ $GLOBALS_METADATA = array(
     //
     'Connectors' => array(
 
-        'rest_api' => array(
-            xl('Enable OpenEMR REST API'),
-            'bool',
-            '0',
-            xl('Enable OpenEMR RESTful API. SSL Required')
-        ),
-
         'fhir_enable' => array(
             xl('Enable FHIR Provider Client Service'),
             array(
@@ -2703,6 +2696,13 @@ $GLOBALS_METADATA = array(
             'text',
             'https://hapi.fhir.org/baseDstu3/',
             xl('Base URL for FHIR Server. Url should end with /')
+        ),
+
+        'rest_api' => array(
+            xl('Enable OpenEMR REST API'),
+            'bool',
+            '0',
+            xl('Enable OpenEMR RESTful API. SSL Required')
         ),
 
         'medex_enable' => array(

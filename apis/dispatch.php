@@ -46,16 +46,20 @@ if (!empty($_REQUEST['_REWRITE_COMMAND'])) {
 // Maintain site id for multi site compatibility.
 // token is a 32 character hash followed by hex encoded site id.
 if ($resource === "/api/auth" || $resource === "/fhir/auth") {
-    // Get a site id from initial log in authentication.
+    // Get a site id from initial login authentication.
     $data = (array)(json_decode(file_get_contents("php://input")));
     $site = empty($data['client_id']) ? "default" : $data['client_id'];
     $_GET['site'] = $site;
 } else {
     $token = get_bearer_token();
-    if (strlen($token) > 32) {
-        $token = str_split($token, 32);
-        $_SERVER["HTTP_X_API_TOKEN"] = $token[0]; // set hash to further the adventure.
-        $_GET['site'] = hex2bin($token[1]); // site id
+    if (strlen($token) > 40) {
+        $api_token = substr($token, 0, 32);
+        $rest = hex2bin(substr($token, 32));
+        $api = substr($rest, 0, 4);
+        $api_site = substr($rest, 4);
+        verify_api_request($resource, $api);
+        $_SERVER["HTTP_X_API_TOKEN"] = $api_token; // set hash to further the adventure.
+        $_GET['site'] = $api_site; // site id
     } else {
         // token should always return with embedded site id
         http_response_code(401);
@@ -71,6 +75,12 @@ if (!$GLOBALS['rest_api']) {
     http_response_code(501);
     exit();
 }
+// api flag must be four chars
+//
+if (is_fhir_request($resource))
+    $_SESSION['api'] = 'fhir';
+else
+    $_SESSION['api'] = 'oemr';
 
 use OpenEMR\Common\Http\HttpRestRouteHandler;
 use OpenEMR\RestControllers\AuthRestController;
@@ -81,6 +91,27 @@ function get_bearer_token()
     if (strtoupper(trim($parse[0])) !== 'BEARER') return false;
 
     return trim($parse[1]);
+}
+
+function is_fhir_request($resource)
+{
+    return (stripos(strtolower($resource), "/fhir/") !== false) ? true : false;
+}
+
+function verify_api_request($resource, $api)
+{
+    $api = strtolower(trim($api));
+    if (is_fhir_request($resource)) {
+        if ($api !== 'fhir') {
+            http_response_code(401);
+            exit();
+        }
+    } elseif ($api !== 'oemr') {
+        http_response_code(401);
+        exit();
+    }
+
+    return;
 }
 
 function authentication_check($resource)
@@ -109,7 +140,7 @@ function authorization_check($section, $value)
 }
 
 authentication_check($resource);
-// @TODO test pass routes by ref
+// dispatch $routes called by ref.
 HttpRestRouteHandler::dispatch($routes, $resource, $_SERVER["REQUEST_METHOD"]);
 // Tear down session for security.
 $gbl->destroySession();
